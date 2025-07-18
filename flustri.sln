@@ -1,0 +1,30 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Flustri.Api", "Flustri.Api\Flustri.Api.csproj", "{9C56DCBE-36EC-3489-E2E6-8EA87D5ABC85}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Flustri.Core", "Flustri.Core\Flustri.Core.csproj", "{AF11B54F-5A5F-5B86-E75B-A0D2C7755C1E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{9C56DCBE-36EC-3489-E2E6-8EA87D5ABC85}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9C56DCBE-36EC-3489-E2E6-8EA87D5ABC85}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9C56DCBE-36EC-3489-E2E6-8EA87D5ABC85}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9C56DCBE-36EC-3489-E2E6-8EA87D5ABC85}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AF11B54F-5A5F-5B86-E75B-A0D2C7755C1E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AF11B54F-5A5F-5B86-E75B-A0D2C7755C1E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AF11B54F-5A5F-5B86-E75B-A0D2C7755C1E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AF11B54F-5A5F-5B86-E75B-A0D2C7755C1E}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {57EA8DDE-2661-480C-9C7F-5EAE5046F7F2}
+	EndGlobalSection
+EndGlobal
