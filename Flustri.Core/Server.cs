@@ -1,24 +1,30 @@
 using System.Security.Cryptography;
+using Microsoft.EntityFrameworkCore;
 
 namespace Flustri.Core;
 
 public interface IServer
 {
-    List<Room> Rooms { get; set; }
+    Task<List<Room>> GetRooms();
 
-    User GetUserById(string userId);
+    Task<User?> GetUserByIdAsync(string userId);
 }
 
 public class Server : IServer
 {
-    public required List<Room> Rooms { get; set; }
-
-    public User GetUserById(string userId)
+    private FlustriDbContext _db;
+    public Server(FlustriDbContext db)
     {
-        return new User()
-        {
-            UserId = userId,
-            KeyPem = Array.Empty<char>()
-        };
+        _db = db;
+    }
+
+    public async Task<List<Room>> GetRooms()
+    {
+        return await _db.Rooms.ToListAsync();
+    }
+
+    public async Task<User?> GetUserByIdAsync(string userId)
+    {
+        return await _db.Users.FirstOrDefaultAsync(u => u.UserId == userId);
     }
 }

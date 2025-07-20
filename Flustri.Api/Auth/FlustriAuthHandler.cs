@@ -19,23 +19,26 @@ public class FlustriAuthHandler : AuthenticationHandler<FlustriAuthSchemeOptions
         _server = server;
     }
 
-    protected override Task<AuthenticateResult> HandleAuthenticateAsync()
+    protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
         if (!Request.Headers.ContainsKey(HeaderNames.Authorization))
-            return Task.FromResult(AuthenticateResult.Fail("Authorization header not found."));
+            return await Task.FromResult(AuthenticateResult.Fail("Authorization header not found."));
 
         var authToken = ExtractToken();
         if (authToken is null)
-            return Task.FromResult(AuthenticateResult.Fail("Auth token is malformed."));
+            return await Task.FromResult(AuthenticateResult.Fail("Auth token is malformed."));
 
-        var user = _server.GetUserById(authToken.UserId);
+        var user = await _server.GetUserByIdAsync(authToken.UserId);
+
+        if (user is null)
+            return await Task.FromResult(AuthenticateResult.Fail("Authentication signature is invalid."));
 
         var verified = VerifyToken(authToken, user);
         if (!verified)
-            return Task.FromResult(AuthenticateResult.Fail("Authentication signature is invalid."));
+            return await Task.FromResult(AuthenticateResult.Fail("Authentication signature is invalid."));
 
         var ticket = GenerateAuthenticationTicket(user);
-        return Task.FromResult(AuthenticateResult.Success(ticket));
+        return await Task.FromResult(AuthenticateResult.Success(ticket));
     }
 
     private AuthenticationTicket GenerateAuthenticationTicket(User user)

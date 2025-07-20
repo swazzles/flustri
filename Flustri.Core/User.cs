@@ -1,4 +1,6 @@
 
+using Microsoft.EntityFrameworkCore;
+
 namespace Flustri.Core;
 
 public record UserConfig(

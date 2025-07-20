@@ -11,12 +11,26 @@ builder.Services.AddAuthentication(options => options.DefaultScheme = "FlustriAu
 
 builder.Services.AddAuthorization();
 
+builder.Services.AddDbContext<FlustriDbContext>();
+
 var app = builder.Build();
 
 if (!builder.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
     app.UseHsts();
+    app.UseExceptionHandler("/Error");
+}
+else
+{
+    app.UseDeveloperExceptionPage();    
+}
+
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    var context = services.GetRequiredService<FlustriDbContext>();
+    context.Database.EnsureCreated();
 }
 
 app.MapGet("/", () => { return "Hello, world!"; }).RequireAuthorization();

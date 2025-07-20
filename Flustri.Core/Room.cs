@@ -2,12 +2,11 @@ namespace Flustri.Core;
 
 public class Room
 {
-    public required string Name { get; set; }
+    public required string RoomId { get; set; }
     public required List<User> Users { get; set; }
 
-    public void SendMessage(string message)
+    public async Task PostMessage(string message)
     {
         
-
     }
 }
