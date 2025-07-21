@@ -6,11 +6,6 @@ using NSec.Cryptography;
 
 namespace Flustri.Core;
 
-public record FlustriKey(
-    byte[] PrivateKey,
-    byte[] PublicKey
-);
-
 public enum FlustriKeyDerivationAlgorithm
 {
     [Description("HKDFSHA256")]
@@ -22,10 +17,17 @@ public enum FlustriKeyDerivationAlgorithm
 
 public record LocksmithOptions(
     FlustriKeyDerivationAlgorithm KeyDerivationAlgorithm,
-    int SaltSize
+    int SaltSize,
+    int MasterPasswordLength
 );
 
-public class Locksmith
+public interface ILocksmith
+{
+    byte[] DeriveKeyFromPassword(string password, long numberOfPasses);
+    string GenerateMasterPassword();
+}
+
+public class Locksmith : ILocksmith
 {
     private LocksmithOptions _options;
 
@@ -34,17 +36,17 @@ public class Locksmith
         _options = options;
     }
 
-    public string GenerateMasterPassword(int length)
+    public string GenerateMasterPassword()
     {
-        return RandomNumberGenerator.GetHexString(length).ToLower();
+        return RandomNumberGenerator.GetHexString(_options.MasterPasswordLength).ToLower();
     }
 
-    public FlustriKey DeriveKeyFromPassword(string password, long memorySize, long numberOfPasses)
+    public byte[] DeriveKeyFromPassword(string password, long numberOfPasses)
     {
         var argon = Argon2id.Argon2id(new Argon2Parameters()
         {
             DegreeOfParallelism = 1,
-            MemorySize = memorySize,
+            MemorySize = 250000, //TODO: Dynamic memory size depending on available memory
             NumberOfPasses = numberOfPasses
         });
 
@@ -57,9 +59,7 @@ public class Locksmith
 
         var salt = RandomNumberGenerator.GetBytes(_options.SaltSize);
         var key = argon.DeriveKey(password, salt, keyDerivationAlgorithm);
-        var privateKey = key.Export(KeyBlobFormat.RawPrivateKey);
-        var publicKey = key.Export(KeyBlobFormat.RawPublicKey);
-
-        return new FlustriKey(privateKey, publicKey);
+        var privateKey = key.Export(KeyBlobFormat.PkixPrivateKey);
+        return privateKey;
     }
 }

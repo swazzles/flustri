@@ -1,22 +1,24 @@
 using System.Security.Claims;
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using Flustri.Core;
+using Flustri.Core.Models;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.Net.Http.Headers;
+using NSec.Cryptography;
 
 namespace Flustri.Api.Auth;
 
 public class FlustriAuthHandler : AuthenticationHandler<FlustriAuthSchemeOptions>
 {
-    private IServer _server;
+    private FlustriDbContext _db;
 
-    public FlustriAuthHandler(IOptionsMonitor<FlustriAuthSchemeOptions> options, ILoggerFactory logger, UrlEncoder encoder, IServer server) : base(options, logger, encoder)
+    public FlustriAuthHandler(IOptionsMonitor<FlustriAuthSchemeOptions> options, ILoggerFactory logger, UrlEncoder encoder, FlustriDbContext db) : base(options, logger, encoder)
     {
-        _server = server;
+        _db = db;
     }
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
@@ -28,7 +30,7 @@ public class FlustriAuthHandler : AuthenticationHandler<FlustriAuthSchemeOptions
         if (authToken is null)
             return await Task.FromResult(AuthenticateResult.Fail("Auth token is malformed."));
 
-        var user = await _server.GetUserByIdAsync(authToken.UserId);
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.UserId == authToken.UserId);
 
         if (user is null)
             return await Task.FromResult(AuthenticateResult.Fail("Authentication signature is invalid."));
@@ -53,14 +55,13 @@ public class FlustriAuthHandler : AuthenticationHandler<FlustriAuthSchemeOptions
     }
 
     private bool VerifyToken(FlustriAuthToken authToken, User user)
-    {
-        var signingContextOptions = new SigningContextOptions(user.KeyPem, HashAlgorithmName.SHA512);
-        var signingContext = new SigningContext(signingContextOptions);
+    {        
+        var signingContext = new SigningContext();
 
         var body = Span<byte>.Empty;
         Request.Body.ReadExactly(body);
 
-        var verified = signingContext.Verify(body.ToArray(), authToken.Signature);
+        var verified = signingContext.Verify(user.PublicKey, body.ToArray(), authToken.Signature);
 
         // If we don't reset the request body stream back to the start it will remain as is and can cause issues further along the request chain.
         Request.Body.Seek(0, SeekOrigin.Begin);

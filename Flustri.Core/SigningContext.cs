@@ -1,11 +1,7 @@
 using System.Security.Cryptography;
+using NSec.Cryptography;
 
 namespace Flustri.Core;
-
-public record SigningContextOptions(
-    char[] KeyPem,
-    HashAlgorithmName HashAlgorithmName
-);
 
 public record SignedData(
     byte[] Hash,
@@ -14,24 +10,16 @@ public record SignedData(
 
 public class SigningContext
 {
-    private SigningContextOptions _options;
 
-    public SigningContext(SigningContextOptions options)
+    public byte[] Sign(byte[] privateKey, byte[] data)
     {
-        _options = options;
+        var key = Key.Import(SignatureAlgorithm.Ed25519, privateKey, KeyBlobFormat.PkixPrivateKey);
+        return SignatureAlgorithm.Ed25519.Sign(key, data);
     }
 
-    public byte[] Sign(byte[] data)
+    public bool Verify(byte[] publicKey, byte[] data, byte[] signature)
     {
-        using var ecdsa = ECDsa.Create();
-        ecdsa.ImportFromPem(_options.KeyPem);
-        return ecdsa.SignData(data, _options.HashAlgorithmName);        
-    }
-
-    public bool Verify(byte[] data, byte[] hash)
-    {
-        var ecdsa = ECDsa.Create();
-        ecdsa.ImportFromPem(_options.KeyPem);
-        return ecdsa.VerifyData(data, hash, _options.HashAlgorithmName);
+        var key = PublicKey.Import(SignatureAlgorithm.Ed25519, publicKey, KeyBlobFormat.PkixPublicKey);
+        return SignatureAlgorithm.Ed25519.Verify(key, data, signature);
     }
 }
