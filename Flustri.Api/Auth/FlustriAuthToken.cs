@@ -1,6 +1,6 @@
 namespace Flustri.Api.Auth;
 
 public record FlustriAuthToken (
-    string UserId,
+    Guid UserId,
     byte[] Signature
 );

@@ -8,7 +8,13 @@ public record SignedData(
     byte[] Signature
 );
 
-public class SigningContext
+public interface ISigningService
+{
+    byte[] Sign(byte[] privateKey, byte[] data);
+    bool Verify(byte[] publicKey, byte[] data, byte[] signature);
+}
+
+public class SigningService : ISigningService
 {
 
     public byte[] Sign(byte[] privateKey, byte[] data)

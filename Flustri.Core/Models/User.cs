@@ -6,7 +6,7 @@ namespace Flustri.Core.Models;
 
 public class User
 {
-    public required string UserId { get; set; }
+    public required Guid UserId { get; set; }
 
     [Timestamp]
     public required Guid Version { get; set; }

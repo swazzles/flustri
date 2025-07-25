@@ -12,18 +12,18 @@ public class FlustriStartup : IStartupFilter
         return async builder =>
         {
             using (var serviceScope = builder.ApplicationServices.GetRequiredService<IServiceScopeFactory>().CreateScope())
-            {
-                var dataDir = DataHelper.GetDataDirectory();
+            {                
+                var dataDir = DataHelper.GetServerDataDirectory();
                 if (!Directory.Exists(dataDir))
                     Directory.CreateDirectory(dataDir);
-                
+
                 var db = serviceScope.ServiceProvider.GetRequiredService<FlustriDbContext>();
                 await db.Database.EnsureCreatedAsync();
 
-                var locksmith = serviceScope.ServiceProvider.GetRequiredService<ILocksmith>();
+                var locksmith = serviceScope.ServiceProvider.GetRequiredService<ILocksmithService>();
                 var logger = serviceScope.ServiceProvider.GetRequiredService<ILogger<FlustriStartup>>();
 
-                await InitialRegistrationCommand.ConsumeAsync(db, locksmith, logger);
+                await InitialRegistrationCommand.ConsumeAsync(db, logger);
             }
 
 

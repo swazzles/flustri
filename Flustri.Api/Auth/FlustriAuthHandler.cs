@@ -46,7 +46,7 @@ public class FlustriAuthHandler : AuthenticationHandler<FlustriAuthSchemeOptions
     private AuthenticationTicket GenerateAuthenticationTicket(User user)
     {
         var claims = new[] {
-            new Claim(ClaimTypes.NameIdentifier, user.UserId),
+            new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
         };
 
         var claimsIdentity = new ClaimsIdentity(claims, nameof(FlustriAuthHandler));
@@ -56,7 +56,7 @@ public class FlustriAuthHandler : AuthenticationHandler<FlustriAuthSchemeOptions
 
     private bool VerifyToken(FlustriAuthToken authToken, User user)
     {        
-        var signingContext = new SigningContext();
+        var signingContext = new SigningService();
 
         var body = Span<byte>.Empty;
         Request.Body.ReadExactly(body);

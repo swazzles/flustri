@@ -3,7 +3,7 @@
 switch (args[0])
 {
     case "key":
-        return KeyCommand.Handle(args);
+        return await KeyCommand.Handle(args);
     default:
         return 1;
 }

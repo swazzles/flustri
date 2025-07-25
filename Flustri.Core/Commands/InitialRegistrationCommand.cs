@@ -6,9 +6,9 @@ namespace Flustri.Core.Commands;
 
 public static class InitialRegistrationCommand
 {
-    public static async Task ConsumeAsync(FlustriDbContext db, ILocksmith locksmith, ILogger logger)
+    public static async Task ConsumeAsync(FlustriDbContext db, ILogger logger)
     {
-        var setupLockLocation = DataHelper.GetDataFilePath("setup.lock");
+        var setupLockLocation = Path.Join(DataHelper.GetServerDataDirectory(), "setup.lock");
         if (File.Exists(setupLockLocation))
             return;
 

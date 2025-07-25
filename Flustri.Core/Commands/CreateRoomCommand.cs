@@ -2,13 +2,13 @@ using Flustri.Core.Models;
 
 namespace Flustri.Core.Commands;
 
-public record CreateRoomRequest (
+public record CreateRoomCommandRequest (
     string RoomId
 );
 
-public static class CreateRoomConsumer
+public static class CreateRoomCommand
 {
-    public static async Task ConsumeAsync(CreateRoomRequest request, FlustriDbContext db)
+    public static async Task ConsumeAsync(CreateRoomCommandRequest request, FlustriDbContext db)
     {
         if (db.Rooms.Any(r => r.RoomId == request.RoomId))
             throw new Exception("Room already exists.");
@@ -19,7 +19,7 @@ public static class CreateRoomConsumer
             Version = Guid.NewGuid()
         };
 
-        await db.AddAsync(newRoom);
+        await db.Rooms.AddAsync(newRoom);
         await db.SaveChangesAsync();
     }
 }

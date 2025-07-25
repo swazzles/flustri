@@ -3,6 +3,11 @@ using Flustri.Core;
 using Flustri.Core.Queries;
 using Flustri.Core.Commands;
 using Flustri.Api;
+using Microsoft.AspNetCore.Mvc.Routing;
+using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,9 +18,37 @@ builder.Services.AddAuthentication(options => options.DefaultScheme = "FlustriAu
 
 builder.Services.AddDbContext<FlustriDbContext>();
 
-builder.Services.AddTransient<ILocksmith, Locksmith>(_ => new Locksmith(new LocksmithOptions(FlustriKeyDerivationAlgorithm.HkdfSha512, 256, 32)));
+
+builder.Services.AddTransient<ISigningService, SigningService>();
+builder.Services.AddTransient<ILocksmithService, LocksmithService>();
 
 builder.Services.AddTransient<IStartupFilter, FlustriStartup>();
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.User.Identity?.Name ?? httpContext.Request.Headers.Host.ToString(),
+            factory: partition => new FixedWindowRateLimiterOptions
+            {
+                Window = TimeSpan.FromMinutes(1),
+                PermitLimit = 10,
+                QueueLimit = 0,
+            }
+        )
+    );
+});
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddFixedWindowLimiter("logged-in", opt =>
+    {
+        opt.Window = TimeSpan.FromMinutes(1);
+        opt.PermitLimit = 30;
+        opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        opt.QueueLimit = 5;
+    });
+});
 
 builder.Services.AddAuthorizationBuilder()
     .AddPolicy("admin_rooms", policy =>
@@ -43,13 +76,21 @@ else
 
 app.MapGet("/", () => { return "Hello, world!"; }).RequireAuthorization();
 
+// Register new user using a previously generated RegistrationRequestId
+app.MapPost("/register", async (RegisterCommandRequest request, ISigningService signingService, FlustriDbContext db) => await RegisterCommand.ConsumeAsync(request, signingService, db))    
+    .WithMetadata(new EndpointNameMetadata("register"));
+
 // List rooms in server
-app.MapGet("/rooms", async (int page, int pageSize, FlustriDbContext db) => await ListRoomsConsumer.ConsumeAsync(new ListRoomsQuery(page, pageSize), db))
-    .RequireAuthorization("admin_rooms", "registered_rooms");
+app.MapGet("/rooms", async (int page, int pageSize, FlustriDbContext db) => await ListRoomsQuery.ConsumeAsync(new ListRoomsQueryRequest(page, pageSize), db))
+    .RequireAuthorization("admin_rooms", "registered_rooms")
+    .WithMetadata(new EndpointNameMetadata("list-rooms"))
+    .RequireRateLimiting("logged-in");
 
 // Create new room in server
-app.MapPost("/rooms", async (CreateRoomRequest request, FlustriDbContext db) => await CreateRoomConsumer.ConsumeAsync(request, db))
-    .RequireAuthorization("admin_rooms");
+app.MapPost("/rooms", async (CreateRoomCommandRequest request, FlustriDbContext db) => await CreateRoomCommand.ConsumeAsync(request, db))
+    .RequireAuthorization("admin_rooms")
+    .WithMetadata(new EndpointNameMetadata("create-room"))
+    .RequireRateLimiting("logged-in");
 
 
 // // List messages in room

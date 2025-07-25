@@ -9,13 +9,8 @@ public class FlustriDbContext : DbContext
     public DbSet<Room> Rooms { get; set; }
     public DbSet<RegistrationRequest> RegistrationRequests { get; set; }
 
-    public required string DbPath { get; set; }
-
-    public FlustriDbContext()
-    {
-        DbPath = DataHelper.GetDataFilePath("flustri.db");        
-    }
+    private static string GetDBPath => Path.Join(DataHelper.GetServerDataDirectory(), "flustri.db");
 
     protected override void OnConfiguring(DbContextOptionsBuilder options)
-        => options.UseSqlite($"Data Source={DbPath}");
+        => options.UseSqlite($"Data Source={GetDBPath}");
 }
