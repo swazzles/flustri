@@ -1,7 +1,7 @@
 
 using Flustri.Core;
 using Flustri.Core.Commands;
-using Microsoft.EntityFrameworkCore;
+using Flustri.Core.Services;
 
 namespace Flustri.Api;
 
@@ -12,7 +12,7 @@ public class FlustriStartup : IStartupFilter
         return async builder =>
         {
             using (var serviceScope = builder.ApplicationServices.GetRequiredService<IServiceScopeFactory>().CreateScope())
-            {                
+            {
                 var dataDir = DataHelper.GetServerDataDirectory();
                 if (!Directory.Exists(dataDir))
                     Directory.CreateDirectory(dataDir);

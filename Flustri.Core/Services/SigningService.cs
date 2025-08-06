@@ -1,7 +1,6 @@
-using System.Security.Cryptography;
 using NSec.Cryptography;
 
-namespace Flustri.Core;
+namespace Flustri.Core.Services;
 
 public record SignedData(
     byte[] Hash,
@@ -10,22 +9,20 @@ public record SignedData(
 
 public interface ISigningService
 {
-    byte[] Sign(byte[] privateKey, byte[] data);
-    bool Verify(byte[] publicKey, byte[] data, byte[] signature);
+    byte[] Sign(Key privateKey, byte[] data);
+    bool Verify(PublicKey publicKey, byte[] data, byte[] signature);
 }
 
 public class SigningService : ISigningService
 {
 
-    public byte[] Sign(byte[] privateKey, byte[] data)
+    public byte[] Sign(Key privateKey, byte[] data)
     {
-        var key = Key.Import(SignatureAlgorithm.Ed25519, privateKey, KeyBlobFormat.PkixPrivateKey);
-        return SignatureAlgorithm.Ed25519.Sign(key, data);
+        return SignatureAlgorithm.Ed25519.Sign(privateKey, data);
     }
 
-    public bool Verify(byte[] publicKey, byte[] data, byte[] signature)
+    public bool Verify(PublicKey publicKey, byte[] data, byte[] signature)
     {
-        var key = PublicKey.Import(SignatureAlgorithm.Ed25519, publicKey, KeyBlobFormat.PkixPublicKey);
-        return SignatureAlgorithm.Ed25519.Verify(key, data, signature);
+        return SignatureAlgorithm.Ed25519.Verify(publicKey, data, signature);
     }
 }

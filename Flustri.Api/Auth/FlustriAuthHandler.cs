@@ -4,6 +4,7 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using Flustri.Core;
 using Flustri.Core.Models;
+using Flustri.Core.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -15,10 +16,17 @@ namespace Flustri.Api.Auth;
 public class FlustriAuthHandler : AuthenticationHandler<FlustriAuthSchemeOptions>
 {
     private FlustriDbContext _db;
+    private ISigningService _signingService;
 
-    public FlustriAuthHandler(IOptionsMonitor<FlustriAuthSchemeOptions> options, ILoggerFactory logger, UrlEncoder encoder, FlustriDbContext db) : base(options, logger, encoder)
+    public FlustriAuthHandler(
+        IOptionsMonitor<FlustriAuthSchemeOptions> options,
+        ILoggerFactory logger,
+        UrlEncoder encoder,
+        FlustriDbContext db,
+        ISigningService signingService) : base(options, logger, encoder)
     {
         _db = db;
+        _signingService = signingService;
     }
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
@@ -56,12 +64,16 @@ public class FlustriAuthHandler : AuthenticationHandler<FlustriAuthSchemeOptions
 
     private bool VerifyToken(FlustriAuthToken authToken, User user)
     {        
-        var signingContext = new SigningService();
-
         var body = Span<byte>.Empty;
         Request.Body.ReadExactly(body);
 
-        var verified = signingContext.Verify(user.PublicKey, body.ToArray(), authToken.Signature);
+        if (!PublicKey.TryImport(SignatureAlgorithm.Ed25519, user.PublicKey, KeyBlobFormat.NSecPublicKey, out var publicKey))
+            return false;
+
+        if (publicKey is null)
+            return false;
+
+        var verified = _signingService.Verify(publicKey, body.ToArray(), authToken.Signature);
 
         // If we don't reset the request body stream back to the start it will remain as is and can cause issues further along the request chain.
         Request.Body.Seek(0, SeekOrigin.Begin);

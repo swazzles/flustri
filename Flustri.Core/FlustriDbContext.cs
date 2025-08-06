@@ -11,6 +11,19 @@ public class FlustriDbContext : DbContext
 
     private static string GetDBPath => Path.Join(DataHelper.GetServerDataDirectory(), "flustri.db");
 
+    public FlustriDbContext()
+    {
+    }
+
+    public FlustriDbContext(DbContextOptions<FlustriDbContext> options) : base(options)
+    {
+    }
+
     protected override void OnConfiguring(DbContextOptionsBuilder options)
-        => options.UseSqlite($"Data Source={GetDBPath}");
+    {
+        if (!options.IsConfigured)
+        {
+            options.UseSqlite($"Data Source={GetDBPath}");
+        }
+    }
 }

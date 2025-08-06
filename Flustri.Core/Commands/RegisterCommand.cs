@@ -1,12 +1,13 @@
-using System.Text;
-using System.Text.Unicode;
+using System.Net;
 using Flustri.Core.Models;
+using Flustri.Core.Services;
+using NSec.Cryptography;
 
 namespace Flustri.Core.Commands;
 
 public record RegisterCommandRequest (
     Guid RequestId,
-    byte[] PublicKey,
+    PublicKey PublicKey,
     byte[] Signature,
     string Nickname
 );
@@ -14,9 +15,9 @@ public record RegisterCommandRequest (
 public static class RegisterCommand
 {
 
-    public static async Task ConsumeAsync(RegisterCommandRequest request, ISigningService signingService, FlustriDbContext db)
+    public static async Task ConsumeAsync(RegisterCommandRequest request, ISigningService signingService, ILocksmithService locksmithService, FlustriDbContext db, IPAddress ip)
     {
-        var registrationRequest = db.RegistrationRequests.FirstOrDefault(r => r.RegistrationRequestId == request.RequestId);
+        var registrationRequest = db.RegistrationRequests.FirstOrDefault(r => r.RegistrationRequestId == request.RequestId && !r.Consumed);
 
         if (registrationRequest is null)
             throw new Exception("Registration request is expired or invalid.");
@@ -30,18 +31,22 @@ public static class RegisterCommand
 
         var valid = signingService.Verify(request.PublicKey, request.RequestId.ToByteArray(), request.Signature);
         if (!valid)
-            throw new Exception("Registration request is expired or invalid.");
+            throw new Exception("Registration request is expired or invalid.");        
 
         var newUser = new User()
         {
             UserId = Guid.NewGuid(),
             Nickname = request.Nickname,
-            PublicKey = request.PublicKey,
+            PublicKey = locksmithService.ExportPublicKey(request.PublicKey),
             Version = Guid.NewGuid()
         };
 
         await db.Users.AddAsync(newUser);
-        db.RegistrationRequests.Remove(registrationRequest);
+
+        registrationRequest.Consumed = true;
+        registrationRequest.ConsumedAt = DateTime.UtcNow;
+        registrationRequest.ConsumedByIp = ip.ToString();
+        
         await db.SaveChangesAsync();
     }
 }

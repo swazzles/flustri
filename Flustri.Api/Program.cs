@@ -3,11 +3,12 @@ using Flustri.Core;
 using Flustri.Core.Queries;
 using Flustri.Core.Commands;
 using Flustri.Api;
-using Microsoft.AspNetCore.Mvc.Routing;
-using Microsoft.AspNetCore.Mvc.Filters;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
+using Flustri.Core.Services;
+using System.Net;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http.HttpResults;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,6 +22,7 @@ builder.Services.AddDbContext<FlustriDbContext>();
 
 builder.Services.AddTransient<ISigningService, SigningService>();
 builder.Services.AddTransient<ILocksmithService, LocksmithService>();
+builder.Services.AddTransient<IServerService, ServerService>();
 
 builder.Services.AddTransient<IStartupFilter, FlustriStartup>();
 
@@ -77,17 +79,30 @@ else
 app.MapGet("/", () => { return "Hello, world!"; }).RequireAuthorization();
 
 // Register new user using a previously generated RegistrationRequestId
-app.MapPost("/register", async (RegisterCommandRequest request, ISigningService signingService, FlustriDbContext db) => await RegisterCommand.ConsumeAsync(request, signingService, db))    
+app.MapPost("/register", async (
+    [FromBody] RegisterCommandRequest request,
+    HttpContext ctx,
+    ISigningService signingService,
+    ILocksmithService locksmithService,
+    FlustriDbContext db)
+        => await RegisterCommand.ConsumeAsync(request, signingService, locksmithService, db, ctx.Connection.RemoteIpAddress ?? IPAddress.None))
     .WithMetadata(new EndpointNameMetadata("register"));
 
 // List rooms in server
-app.MapGet("/rooms", async (int page, int pageSize, FlustriDbContext db) => await ListRoomsQuery.ConsumeAsync(new ListRoomsQueryRequest(page, pageSize), db))
+app.MapGet("/rooms", async (
+    int page,
+    int pageSize,
+    FlustriDbContext db)
+        => await ListRoomsQuery.ConsumeAsync(new ListRoomsQueryRequest(page, pageSize), db))
     .RequireAuthorization("admin_rooms", "registered_rooms")
     .WithMetadata(new EndpointNameMetadata("list-rooms"))
     .RequireRateLimiting("logged-in");
 
 // Create new room in server
-app.MapPost("/rooms", async (CreateRoomCommandRequest request, FlustriDbContext db) => await CreateRoomCommand.ConsumeAsync(request, db))
+app.MapPost("/rooms", async (
+    CreateRoomCommandRequest request,
+    FlustriDbContext db)
+        => await CreateRoomCommand.ConsumeAsync(request, db))
     .RequireAuthorization("admin_rooms")
     .WithMetadata(new EndpointNameMetadata("create-room"))
     .RequireRateLimiting("logged-in");
